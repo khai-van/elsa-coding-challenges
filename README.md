@@ -2,72 +2,148 @@
 
 ## Overview
 
-Welcome to the Real-Time Quiz coding challenge! Your task is to create a technical solution for a real-time quiz feature for an English learning application. This feature will allow users to answer questions in real-time, compete with others, and see their scores updated live on a leaderboard.
+The Real-Time Vocabulary Quiz Backend Challenge involves building a backend system to power a multiplayer, real-time vocabulary quiz game. This README outlines the key objectives, requirements, sytem design for the backend service.
 
-## Acceptance Criteria
+## Objectives
 
-1. **User Participation**:
-   - Users should be able to join a quiz session using a unique quiz ID.
-   - The system should support multiple users joining the same quiz session simultaneously.
+1. Enable users to join a quiz session using a unique quiz ID and allow multiple users to participate in the same session simultaneously.
+2. Implement real-time score updates as users submit answers, ensuring the scoring system is accurate and consistent.
+3. Create a real-time leaderboard to display the current standings of all participants, updating promptly as scores change.
+4. Design a scalable, low-latency backend architecture to handle multiple concurrent users effectively.
+5. Demonstrate clean code practices, effective use of databases, and integration of real-time messaging protocols.
 
-2. **Real-Time Score Updates**:
-   - As users submit answers, their scores should be updated in real-time.
-   - The scoring system must be accurate and consistent.
+---
 
-3. **Real-Time Leaderboard**:
-   - A leaderboard should display the current standings of all participants.
-   - The leaderboard should update promptly as scores change.
+## Requirements
 
-## Challenge Requirements
+For detailed requirements, refer to the requirements.md file.
 
-### Part 1: System Design
+---
 
-1. **System Design Document**:
-   - **Architecture Diagram**: Create an architecture diagram illustrating how different components of the system interact. This should include all components required for the feature, including the server, client applications, database, and any external services.
-   - **Component Description**: Describe each component's role in the system.
-   - **Data Flow**: Explain how data flows through the system from when a user joins a quiz to when the leaderboard is updated.
-   - **Technologies and Tools**: List and justify the technologies and tools chosen for each component.
+## System Design
 
-### Part 2: Implementation
+The following system design outlines the architecture for the Real-Time Vocabulary Quiz backend service:
 
-1. **Pick a Component**:
-   - Implement one of the core components below using the technologies that you are comfortable with. The rest of the system can be mocked using mock services or data.
+![System Design](./architecture-diagram.png)
 
-2. **Requirements for the Implemented Component**:
-   - **Real-time Quiz Participation**: Users should be able to join a quiz session using a unique quiz ID.
-   - **Real-time Score Updates**: Users' scores should be updated in real-time as they submit answers.
-   - **Real-time Leaderboard**: A leaderboard should display the current standings of all participants in real-time.
+### Key Components:
 
-3. **Build For the Future**:
-   - **Scalability**: Design and implement your component with scalability in mind. Consider how the system would handle a large number of users or quiz sessions. Discuss any trade-offs you made in your design and implementation.
-   - **Performance**: Your component should perform well even under heavy load. Consider how you can optimize your code and your use of resources to ensure high performance.
-   - **Reliability**: Your component should be reliable and handle errors gracefully. Consider how you can make your component resilient to failures.
-   - **Maintainability**: Your code should be clean, well-organized, and easy to maintain. Consider how you can make it easy for other developers to understand and modify your code.
-   - **Monitoring and Observability**: Discuss how you would monitor the performance of your component and diagnose issues. Consider how you can make your component observable.
+1. **Client**:
+   - Users interact with the system via WebSocket or RESTful APIs.
+   - Supported platforms include web and mobile.
 
-## Submission Guidelines
+2. **API Gateway**:
+   - Manages incoming client requests.
+   - Routes requests to appropriate backend quiz services.
 
-Candidates are required to submit the following as part of the coding challenge:
+3. **Quiz Service**:
+   - Handles quiz logic, user sessions, and answers submission.
+   - Manages communication with the cache, database, and messaging systems.
 
-1. **System Design Documents**:
-   - **Architecture Diagram**: Illustrate the interaction of system components (server, client applications, database, etc.).
-   - **Component Descriptions**: Explain the role of each component.
-   - **Data Flow**: Describe how data flows from user participation to leaderboard updates.
-   - **Technology Justification**: List the chosen technologies and justify why they were selected.
+4. **Redis**:
+   - Used for maintaining leaderboards and session information.
+   - Provides low-latency real-time data.
 
-2. **Working Code**:
-   - Choose one of the core components mentioned in the requirements and implement it using your preferred technologies. The rest of the system can be mocked using appropriate mock services or data.
-   - Ensure the code meets criteria such as scalability, performance, reliability, maintainability, and observability.
+5. **Cache**:
+   - Stores frequently accessed quiz information for fast retrieval.
 
-3. **Video Submission**:
-   - Record a short video (5-10 minutes) where you address the following:
-     - **Introduction**: Introduce yourself and state your name.
-     - **Assignment Overview**: Describe the technical assignment that ELSA gave in your own words. Feel free to mention any assumptions or clarifications you made.
-     - **Solution Overview**: Provide a crisp overview of your solution, highlighting key design and implementation elements.
-     - **Demo**: Run the code on your local machine and walk us through the output or any tests you’ve written to verify the functionality.
-     - **Conclusion**: Conclude with any remarks, such as challenges faced, learnings, or further improvements you would make.
+6. **PostgreSQL**:
+   - Used as the main database for storing quiz-related information, such as questions and user data.
 
-   **Video Requirements**:
-   - The video must be between **5-10 minutes**. Any submission beyond 10 minutes will be rejected upfront.
-   - Use any recording device (smartphone, webcam, etc.), ensuring good audio and video quality.
-   - Ensure clear and concise communication.
+7. **Messaging (Kafka)**:
+   - Broadcast message from services to user through websocket connection.
+
+8. **Logging & Monitoring**:
+   - Provides insights into system performance, errors, and debugging.
+   - Tools like Prometheus and Grafana are used for monitoring and visualization.
+
+### Data Flow for Key Features
+
+The following data flow diagram illustrates the interaction between different components for the three main features of the Real-Time Vocabulary Quiz system:
+
+![Data Flow](./data-flow.png)
+
+#### 1. User Joins Quiz
+1. User joins a quiz from the **Client**.
+2. Client establishes a WebSocket connection with the **Gateway**.
+3. The Gateway sends a request to **Quiz Service** with authentication info.
+4. Quiz Service generates a quiz session ID and stores it in **Redis**.
+5. Quiz Service responds with the quiz ID to the Gateway.
+6. Gateway sends the quiz ID back to the Client.
+
+#### 2. User Answers Quiz
+1. Quiz Service publishes the quiz message via **Kafka**.
+2. Gateway subscribes to the Kafka topic.
+3. Gateway broadcasts the quiz to connected users.
+4. Client displays the quiz to the user.
+5. User submits an answer through the Client.
+6. Gateway sends the answer to the Quiz Service.
+7. Quiz Service calculates the score and updates Redis sorted set.
+
+#### 3. Real-Time Leaderboard Updates
+1. Quiz Service publishes leaderboard changes via **Kafka**.
+2. Gateway subscribes to the leaderboard updates from Kafka.
+3. Gateway broadcasts the updated leaderboard to connected users in real-time.
+4. Client displays the leaderboard changes promptly.
+
+---
+
+## Installation and Setup
+
+### Prerequisites:
+
+1. Node.js or Python installed on your system.
+2. Docker for containerization (optional).
+3. Redis for real-time messaging (optional).
+
+### Steps:
+
+1. Clone the repository:
+
+   ```bash
+   git clone <repository-url>
+   cd real-time-vocabulary-quiz
+   ```
+
+2. Install dependencies:
+
+   - For Node.js:
+     ```bash
+     npm install
+     ```
+   - For Python:
+     ```bash
+     pip install -r requirements.txt
+     ```
+
+3. Set up the database:
+
+   - Run the database schema migration tool (e.g., Sequelize for Node.js or Alembic for Python).
+   - Seed the database with vocabulary questions.
+
+4. Run the application:
+
+   - Locally:
+     ```bash
+     npm start  # for Node.js
+     python app.py  # for Python
+     ```
+   - Using Docker:
+     ```bash
+     docker-compose up
+     ```
+
+5. Start Redis (if required for messaging):
+
+   ```bash
+   redis-server
+   ```
+
+---
+
+## Future Improvements
+
+1. Add support for multilingual vocabulary quizzes.
+2. Implement user ranking and achievements.
+3. Scale horizontally with sharding for Redis or Kafka.
+4. Add AI-based question generation.
