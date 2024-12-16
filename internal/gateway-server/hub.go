@@ -1,6 +1,7 @@
 package gatewayserver
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"quiz/internal/constant"
@@ -19,25 +20,22 @@ type Hub struct {
 }
 
 func (h *Hub) run() {
-	consumer, err := mkafka.ConsumeMessages(constant.KAFKATOPIC_LEADERBOARDCHANGE)
-	if err != nil {
-		log.Fatal(err)
-	}
+	reader := mkafka.GetKafkaReader(constant.KAFKATOPIC_LEADERBOARDCHANGE, constant.KAFKAGROUP_LEADERBOARDCHANGE)
+	defer reader.Close()
 
 	for {
-		select {
-		case err := <-consumer.Errors():
-			log.Println(err)
-		case msg := <-consumer.Messages():
-			var data models.LeaderboardMemberChange
-			if err := json.Unmarshal(msg.Value, &data); err != nil {
-				log.Println(err)
-				continue
-			}
-
-			// broadcast to all user in room
-			go h.broadcastMemberChange(data)
+		msg, err := reader.ReadMessage(context.Background())
+		if err != nil {
+			log.Fatalln(err)
 		}
+		var data models.LeaderboardMemberChange
+		if err := json.Unmarshal(msg.Value, &data); err != nil {
+			log.Println(err)
+			continue
+		}
+		// broadcast to all user in room
+		go h.broadcastMemberChange(data)
+
 	}
 }
 
@@ -48,13 +46,8 @@ func (h *Hub) broadcastMemberChange(data models.LeaderboardMemberChange) {
 	}
 
 	msg := WebsocketMessage[models.LeaderboardMemberChange]{
-		Type:    0,
+		Type:    LeaderboardChangeType,
 		Message: data,
-	}
-	msgByte, err := json.Marshal(msg)
-	if err != nil {
-		log.Println(err)
-		return
 	}
 
 	h.mu.RLock()
@@ -62,7 +55,7 @@ func (h *Hub) broadcastMemberChange(data models.LeaderboardMemberChange) {
 	for userID := range userIDs {
 		conn, exist := h.Users[userID]
 		if exist {
-			go conn.WriteMessage(websocket.BinaryMessage, msgByte)
+			go conn.WriteJSON(msg)
 		}
 	}
 }

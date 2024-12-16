@@ -11,8 +11,9 @@ service QuizService {
 
 message AnswerRequest {
   string userID = 1;
-  string questionID = 2;
-  string answer = 3;
+  string quizID = 2;
+  string questionID = 3;
+  string answer = 4;
 }
 
 message AnswerResponse {

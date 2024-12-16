@@ -40,9 +40,7 @@ func New() (*Server, error) {
 		return nil, err
 	}
 	// connect kafka
-	if err := mkafka.InitKafka(conf.Kafka); err != nil {
-		return nil, err
-	}
+	mkafka.InitKafkaConf(conf.Kafka)
 
 	// new service handler
 	server.leaderboardSvc = leaderboard.New()

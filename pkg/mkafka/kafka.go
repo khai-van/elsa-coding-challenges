@@ -1,62 +1,36 @@
 package mkafka
 
 import (
-	"sync"
+	"time"
 
-	"github.com/IBM/sarama"
+	"github.com/segmentio/kafka-go"
 )
 
-var (
-	kafkaProducerInstance sarama.SyncProducer
-	kafkaConsumerInstance sarama.Consumer
-	onceProducer          sync.Once
-	onceConsumer          sync.Once
-	sConf                 Config
-)
+var sConf Config
 
 type Config struct {
 	Brokers []string
 }
 
-func InitKafka(conf Config) error {
+func InitKafkaConf(conf Config) {
 	sConf = conf
+}
 
-	// alway init producer
-	if _, err := GetKafkaProducer(); err != nil {
-		return err
+func GetKafkaWriter(topic string) *kafka.Writer {
+	return &kafka.Writer{
+		Addr:     kafka.TCP(sConf.Brokers...),
+		Topic:    topic,
+		Balancer: &kafka.LeastBytes{},
 	}
-
-	return nil
 }
 
-func GetKafkaProducer() (sarama.SyncProducer, error) {
-	var err error
-	onceProducer.Do(func() {
-		// Configure Kafka producer
-		producerConfig := sarama.NewConfig()
-		producerConfig.Producer.Return.Successes = true
-		producerConfig.Producer.Retry.Max = 5
-
-		producer, initErr := sarama.NewSyncProducer(sConf.Brokers, producerConfig)
-		if initErr != nil {
-			err = initErr
-			return
-		}
-		kafkaProducerInstance = producer
+func GetKafkaReader(topic, groupID string) *kafka.Reader {
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  sConf.Brokers,
+		GroupID:  groupID,
+		Topic:    topic,
+		MinBytes: 1,    // 1B
+		MaxBytes: 10e6, // 10MB
+		MaxWait:  100 * time.Millisecond,
 	})
-	return kafkaProducerInstance, err
-}
-
-func GetKafkaConsumer() (sarama.Consumer, error) {
-	var err error
-	onceConsumer.Do(func() {
-		// Configure Kafka consumer
-		consumer, initErr := sarama.NewConsumer(sConf.Brokers, nil)
-		if initErr != nil {
-			err = initErr
-			return
-		}
-		kafkaConsumerInstance = consumer
-	})
-	return kafkaConsumerInstance, err
 }

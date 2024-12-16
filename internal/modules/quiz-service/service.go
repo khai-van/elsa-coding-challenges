@@ -24,7 +24,7 @@ func (svc *Service) SubmitAnswer(ctx context.Context, quizID, userID, questionID
 	// TODO: validate data
 
 	// add random score to  lb
-	score := int32(rand.Uint32())
+	score := int32(rand.Uint32N(20))
 	if err := svc.lbSvc.AddScore(ctx, quizID, userID, score); err != nil {
 		return nil, err
 	}

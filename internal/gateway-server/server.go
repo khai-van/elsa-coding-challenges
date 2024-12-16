@@ -34,12 +34,10 @@ func New() (*Server, error) {
 
 	// init connection
 	// connect kafka
-	if err := mkafka.InitKafka(conf.Kafka); err != nil {
-		return nil, err
-	}
+	mkafka.InitKafkaConf(conf.Kafka)
 
 	// set connection to quiz service
-	conn, err := grpc.Dial(conf.QuizInternal, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(conf.QuizInternal, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}

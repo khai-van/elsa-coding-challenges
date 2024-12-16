@@ -43,11 +43,11 @@ func (srv *Server) joinRoomWS(c echo.Context) error {
 			continue
 		}
 
-		srv.handleMessage(userID, data, conn)
+		srv.handleMessage(userID, quizID, data, conn)
 	}
 }
 
-func (srv *Server) handleMessage(userID string, message WebsocketMessage[any], conn *websocket.Conn) {
+func (srv *Server) handleMessage(userID, quizID string, message WebsocketMessage[any], conn *websocket.Conn) {
 	switch message.Type {
 	case SubmitAnswer:
 		// parse msg
@@ -66,8 +66,10 @@ func (srv *Server) handleMessage(userID string, message WebsocketMessage[any], c
 		// send anwser to quiz service
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
+
 		resp, err := srv.quizService.SubmitAnswer(ctx, &pb.AnswerRequest{
 			UserID:     userID,
+			QuizID:     quizID,
 			QuestionID: msg.QuestionID,
 			Answer:     msg.Anwser,
 		})

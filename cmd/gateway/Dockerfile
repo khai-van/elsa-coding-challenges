@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN --mount=type=bind,source=go.mod,target=go.mod \
     --mount=type=bind,source=go.sum,target=go.sum \
-    go mod tidy
+    go mod download
 
 RUN --mount=type=bind,target=. \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/service ./cmd/gateway

@@ -19,7 +19,7 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 
-	srv.RegisterRoute(e.Group("/"))
+	srv.RegisterRoute(e.Group(""))
 
 	e.Logger.Fatal(e.Start(":8080"))
 }

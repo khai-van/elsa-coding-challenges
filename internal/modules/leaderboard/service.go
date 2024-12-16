@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	pb "quiz/api/gen/quiz"
 	"quiz/internal/constant"
 	"quiz/models"
 	"quiz/pkg/mkafka"
 	"quiz/pkg/mredis"
+	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 )
 
 type Service struct{}
@@ -52,35 +54,49 @@ func (svc *Service) AddScore(ctx context.Context, quizID, userID string, score i
 	// add score to sorted set
 	cli := mredis.GetClient()
 	key := svc.leaderboarKey(quizID)
-	newScore, err := cli.ZAdd(ctx, key, redis.Z{
-		Score:  float64(score),
-		Member: userID,
-	}).Result()
+	err := cli.ZIncrBy(ctx, key, float64(score), userID).Err()
 	if err != nil {
 		return err
 	}
 
 	// publish member change to kafka
+	go svc.publishChangeLeaderboard(key, quizID, userID)
+
+	return nil
+}
+
+func (*Service) publishChangeLeaderboard(key string, quizID, userID string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	cli := mredis.GetClient()
 	// get new rank
-	rank, err := cli.ZRank(ctx, key, userID).Result()
+	rank, err := cli.ZRankWithScore(ctx, key, userID).Result()
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	msg := models.LeaderboardMemberChange{
+		QuizID:   quizID,
 		UserID:   userID,
-		NewRank:  int(rank),
-		NewScore: int(newScore),
+		NewRank:  int(rank.Rank),
+		NewScore: int(rank.Score),
 	}
 	msgStr, err := json.Marshal(msg)
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	// publish msg
-	if err := mkafka.SendMessage(constant.KAFKATOPIC_LEADERBOARDCHANGE, string(msgStr)); err != nil {
-		return err
+	if err := mkafka.GetKafkaWriter(constant.KAFKATOPIC_LEADERBOARDCHANGE).WriteMessages(
+		ctx,
+		kafka.Message{
+			Key:   []byte(fmt.Sprintf("%s:%s", key, userID)),
+			Value: msgStr,
+		},
+	); err != nil {
+		log.Println(err)
 	}
-
-	return nil
 }
