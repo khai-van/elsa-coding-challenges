@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package quiz;
+
+option go_package = "./quiz";
+
+service QuizService {
+  rpc SubmitAnswer (AnswerRequest) returns (AnswerResponse);
+  rpc GetLeaderboard (LeaderboardRequest) returns (LeaderboardResponse);
+}
+
+message AnswerRequest {
+  string userID = 1;
+  string questionID = 2;
+  string answer = 3;
+}
+
+message AnswerResponse {
+  bool isCorrect = 1;
+  int32 score = 2;
+}
+
+message LeaderboardRequest {
+   string quizID = 1;
+}
+
+message LeaderboardResponse {
+    repeated UserScore leaderboard = 2;
+}
+
+message UserScore {
+  string userID = 1;
+  int32 score = 2;
+}
