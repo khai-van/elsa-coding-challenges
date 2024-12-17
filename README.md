@@ -16,7 +16,7 @@ The Real-Time Vocabulary Quiz Backend Challenge involves building a backend syst
 
 ## Requirements
 
-For detailed requirements, refer to the requirements.md file.
+For detailed requirements, refer to the [requirement.md](./requirement.md) file.
 
 ---
 
