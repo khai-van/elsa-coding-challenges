@@ -92,58 +92,14 @@ The following data flow diagram illustrates the interaction between different co
 
 ### Prerequisites:
 
-1. Node.js or Python installed on your system.
-2. Docker for containerization (optional).
-3. Redis for real-time messaging (optional).
+1. Golang installed on your system.
+2. Docker for containerization.
 
 ### Steps:
 
-1. Clone the repository:
-
-   ```bash
-   git clone <repository-url>
-   cd real-time-vocabulary-quiz
-   ```
-
-2. Install dependencies:
-
-   - For Node.js:
-     ```bash
-     npm install
-     ```
-   - For Python:
-     ```bash
-     pip install -r requirements.txt
-     ```
-
-3. Set up the database:
-
-   - Run the database schema migration tool (e.g., Sequelize for Node.js or Alembic for Python).
-   - Seed the database with vocabulary questions.
-
-4. Run the application:
-
-   - Locally:
-     ```bash
-     npm start  # for Node.js
-     python app.py  # for Python
+1. Run the docker-compose:
      ```
    - Using Docker:
      ```bash
      docker-compose up
      ```
-
-5. Start Redis (if required for messaging):
-
-   ```bash
-   redis-server
-   ```
-
----
-
-## Future Improvements
-
-1. Add support for multilingual vocabulary quizzes.
-2. Implement user ranking and achievements.
-3. Scale horizontally with sharding for Redis or Kafka.
-4. Add AI-based question generation.

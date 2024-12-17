@@ -6,6 +6,8 @@ const (
 	LeaderboardChangeType MessageType = iota + 1
 	SubmitAnswer
 	SubmitAnswerResp
+	ListLeaderboardRequest
+	ListLeaderboardResponse
 )
 
 type WebsocketMessage[T any] struct {

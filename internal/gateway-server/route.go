@@ -40,6 +40,7 @@ func (srv *Server) joinRoomWS(c echo.Context) error {
 		err := conn.ReadJSON(&data)
 		if err != nil {
 			c.Logger().Error(err)
+			conn.WriteMessage(websocket.TextMessage, []byte("invalid request!"))
 			continue
 		}
 
@@ -48,6 +49,9 @@ func (srv *Server) joinRoomWS(c echo.Context) error {
 }
 
 func (srv *Server) handleMessage(userID, quizID string, message WebsocketMessage[any], conn *websocket.Conn) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
 	switch message.Type {
 	case SubmitAnswer:
 		// parse msg
@@ -62,10 +66,6 @@ func (srv *Server) handleMessage(userID, quizID string, message WebsocketMessage
 			log.Println(err)
 			return
 		}
-
-		// send anwser to quiz service
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
 
 		resp, err := srv.quizService.SubmitAnswer(ctx, &pb.AnswerRequest{
 			UserID:     userID,
@@ -85,5 +85,23 @@ func (srv *Server) handleMessage(userID, quizID string, message WebsocketMessage
 			log.Println(err)
 			return
 		}
+	case ListLeaderboardRequest:
+		resp, err := srv.quizService.GetLeaderboard(ctx, &pb.LeaderboardRequest{
+			QuizID: quizID,
+		})
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if err := conn.WriteJSON(WebsocketMessage[*pb.LeaderboardResponse]{
+			Type:    ListLeaderboardResponse,
+			Message: resp,
+		}); err != nil {
+			log.Println(err)
+			return
+		}
+	default:
+		conn.WriteMessage(websocket.TextMessage, []byte("unsupprt request type!"))
 	}
 }
