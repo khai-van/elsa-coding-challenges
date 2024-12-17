@@ -33,7 +33,7 @@ func (svc *Service) GetLeaderboard(ctx context.Context, quizID string) (*pb.Lead
 	// assume that quizID is correct, improve in future using pagination for performance
 	// get leaderboard from sorted set redis
 	cli := mredis.GetClient()
-	result, err := cli.ZRangeWithScores(ctx, svc.leaderboarKey(quizID), 0, -1).Result() // get all
+	result, err := cli.ZRevRangeWithScores(ctx, svc.leaderboarKey(quizID), 0, -1).Result() // get all
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (*Service) publishChangeLeaderboard(key string, quizID, userID string) {
 
 	cli := mredis.GetClient()
 	// get new rank
-	rank, err := cli.ZRankWithScore(ctx, key, userID).Result()
+	rank, err := cli.ZRevRankWithScore(ctx, key, userID).Result()
 	if err != nil {
 		log.Println(err)
 		return
